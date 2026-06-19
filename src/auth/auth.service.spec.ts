@@ -2,9 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { UsersService } from '../users/users.service';
+import { JwtService } from '@nestjs/jwt';
 
 const mockUsersService = {
   findByEmail: jest.fn(),
+};
+
+const mockJwtService = {
+  sign: jest.fn(),
 };
 
 describe('AuthService', () => {
@@ -16,9 +21,11 @@ describe('AuthService', () => {
         AuthService,
         {
           provide: UsersService,
-          useValue: {
-            findByEmail: jest.fn(),
-          },
+          useValue: mockUsersService,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
         },
       ],
     }).compile();
