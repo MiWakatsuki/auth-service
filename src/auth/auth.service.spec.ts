@@ -27,6 +27,7 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: mockJwtService,
         },
+
       ],
     }).compile();
 
