@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 const mockUsersService = {
   findByEmail: jest.fn(),
@@ -10,6 +11,17 @@ const mockUsersService = {
 
 const mockJwtService = {
   sign: jest.fn(),
+};
+
+const mockConfigService = {
+  getOrThrow: jest.fn((key: string) => {
+    const values = {
+      JWT_REFRESH_SECRET: 'refresh-secret',
+      JWT_REFRESH_EXPIRES_IN: '7d',
+    };
+
+    return values[key];
+  }),
 };
 
 describe('AuthService', () => {
@@ -26,6 +38,12 @@ describe('AuthService', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            getOrThrow: jest.fn(),
+          },
         },
 
       ],

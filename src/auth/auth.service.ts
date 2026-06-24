@@ -2,10 +2,15 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
-    constructor(private readonly usersService: UsersService, private readonly jwtService: JwtService) {}
+    constructor(
+        private readonly usersService: UsersService, 
+        private readonly jwtService: JwtService, 
+        private readonly configService: ConfigService) 
+        {}
 
     async validateUser(email: string, password: string) {
         const user = await this.usersService.findByEmail(email);
@@ -26,10 +31,37 @@ export class AuthService {
     }
 
     login(user: any) {
-    const payload = { email: user.email, sub: user.id };
+        const payload = { email: user.email, sub: user.id };
 
-    return {
-        access_token: this.jwtService.sign(payload),
-    };
+        const accessToken = this.jwtService.sign(payload);
+
+        const refreshToken = this.jwtService.sign(payload, {
+            secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+            expiresIn: this.configService.getOrThrow('JWT_REFRESH_EXPIRES_IN'),
+        });
+
+        return {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+        };  
+    }
+
+    refreshToken(refreshToken: string) {
+         try {
+            const decoded = this.jwtService.verify(refreshToken, {
+            secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+            });
+
+            const payload = {
+            email: decoded.email,
+            sub: decoded.sub,
+            };
+
+            return {
+            access_token: this.jwtService.sign(payload),
+            };
+        } catch {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
     }
 }
