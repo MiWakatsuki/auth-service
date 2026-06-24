@@ -4,6 +4,7 @@ import { User } from './entities/user.entity';
 import { Repository } from 'typeorm'; 
 import { InjectRepository } from '@nestjs/typeorm'; 
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -19,8 +20,20 @@ export class UsersService {
     if (await this.userRepository.findOne({ where: { cpf: createUserDto.cpf } })) {
       throw new ConflictException('CPF already exists');
     }
-    const user = this.userRepository.create(createUserDto);
-    return this.userRepository.save(user);
+
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+    const user = this.userRepository.create({
+       ...createUserDto, 
+        password: hashedPassword,
+      });
+    
+    const savedUser = await this.userRepository.save(user);
+
+    const { password, ...userWithoutPassword } = savedUser;
+
+    return userWithoutPassword;
+
   }
 
   async findAll() {
@@ -33,6 +46,10 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  async findByEmail(email: string) {
+    return this.userRepository.findOne({ where: { email } });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
