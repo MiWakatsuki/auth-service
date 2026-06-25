@@ -30,7 +30,7 @@ export class AuthService {
      
     }
 
-    login(user: any) {
+    async login(user: any) {
         const payload = { email: user.email, sub: user.id };
 
         const accessToken = this.jwtService.sign(payload);
@@ -40,25 +40,44 @@ export class AuthService {
             expiresIn: this.configService.getOrThrow('JWT_REFRESH_EXPIRES_IN'),
         });
 
+        const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+        await this.usersService.updateRefreshTokenHash(user.id, refreshTokenHash);
+
         return {
             access_token: accessToken,
             refresh_token: refreshToken,
-        };  
+        };
     }
 
-    refreshToken(refreshToken: string) {
-         try {
+    async refreshToken(refreshToken: string) {
+        try {
             const decoded = this.jwtService.verify(refreshToken, {
-            secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+                secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
             });
 
+            const user = await this.usersService.findOne(decoded.sub);
+
+            if (!user.refreshTokenHash) {
+                throw new UnauthorizedException('Invalid refresh token');
+            }
+
+            const isRefreshTokenValid = await bcrypt.compare(
+                refreshToken,
+                user.refreshTokenHash,
+            );
+
+            if (!isRefreshTokenValid) {
+                throw new UnauthorizedException('Invalid refresh token');
+            }
+
             const payload = {
-            email: decoded.email,
-            sub: decoded.sub,
+                email: decoded.email,
+                sub: decoded.sub,
             };
 
             return {
-            access_token: this.jwtService.sign(payload),
+                access_token: this.jwtService.sign(payload),
             };
         } catch {
             throw new UnauthorizedException('Invalid refresh token');
