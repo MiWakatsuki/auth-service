@@ -41,9 +41,7 @@ describe('AuthService', () => {
         },
         {
           provide: ConfigService,
-          useValue: {
-            getOrThrow: jest.fn(),
-          },
+          useValue: mockConfigService,
         },
 
       ],
