@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { JwtService } from '@nestjs/jwt';
 
 const mockUsersService = {
   create: jest.fn(),
@@ -9,6 +10,11 @@ const mockUsersService = {
   findOne: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
+};
+
+const mockJwtService = {
+  sign: jest.fn(),
+  verify: jest.fn(),
 };
 
 describe('UsersController', () => {
@@ -21,6 +27,10 @@ describe('UsersController', () => {
         {
           provide: UsersService,
           useValue: mockUsersService,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
         },
       ],
     }).compile();
