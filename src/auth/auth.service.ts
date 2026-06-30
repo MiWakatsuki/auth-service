@@ -31,7 +31,7 @@ export class AuthService {
     }
 
     async login(user: any) {
-        const payload = { email: user.email, sub: user.id };
+        const payload = { email: user.email, sub: user.id, role: user.role };
 
         const accessToken = this.jwtService.sign(payload);
 
@@ -56,7 +56,7 @@ export class AuthService {
                 secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
             });
 
-            const user = await this.usersService.findOne(decoded.sub);
+            const user = await this.usersService.findInternalById(decoded.sub);
 
             if (!user.refreshTokenHash) {
                 throw new UnauthorizedException('Invalid refresh token');
@@ -74,6 +74,7 @@ export class AuthService {
             const payload = {
                 email: decoded.email,
                 sub: decoded.sub,
+                role: decoded.role,
             };
 
             return {

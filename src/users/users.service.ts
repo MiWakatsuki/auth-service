@@ -30,22 +30,33 @@ export class UsersService {
     
     const savedUser = await this.userRepository.save(user);
 
-    const { password, ...userWithoutPassword } = savedUser;
-
-    return userWithoutPassword;
+    return this.sanitizeUser(savedUser);
 
   }
 
   async findAll() {
-    return this.userRepository.find();
+    const users = await this.userRepository.find();
+
+    return users.map((user) => this.sanitizeUser(user));
   }
 
   async findOne(id: string) {
+    const user = await this.findUserById(id);
+    return this.sanitizeUser(user);
+  }
+
+  private async findUserById(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
+
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
     return user;
+  }
+
+  async findInternalById(id: string) {
+    return this.findUserById(id);
   }
 
   async findByEmail(email: string) {
@@ -53,23 +64,34 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
-    const user = await this.findOne(id);
+    const user = await this.findUserById(id);
     Object.assign(user, updateUserDto);
-    return this.userRepository.save(user);
+    const updatedUser = await this.userRepository.save(user);
+
+    return this.sanitizeUser(updatedUser);
   }
 
   async remove(id: string) {
-    const user = await this.findOne(id);
-    return this.userRepository.remove(user);
+    const user = await this.findUserById(id);
+    await this.userRepository.remove(user);
+
+    return this.sanitizeUser(user);
   }
 
   async updateRefreshTokenHash(userId: string, refreshTokenHash: string) {
-  await this.userRepository.update(userId, { refreshTokenHash });
+    await this.userRepository.update(userId, { refreshTokenHash });
   }
 
   async clearRefreshTokenHash(userId: string) {
-  await this.userRepository.update(userId, {
-    refreshTokenHash: null,
-  });
+    await this.userRepository.update(userId, {
+      refreshTokenHash: null,
+      });
+  }
+
+  private sanitizeUser(user: User) {
+    const { password: _password, refreshTokenHash: _refreshTokenHash, ...safeUser } = user;
+
+    return safeUser;
+  }
 }
-}
+
